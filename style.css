@@ -1,0 +1,212 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f7fc;
+    color: #1a2c3e;
+    padding: 20px;
+    line-height: 1.4;
+}
+
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Tarjetas */
+.card {
+    background: white;
+    border-radius: 28px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.02);
+    padding: 1.5rem;
+    margin-bottom: 1.8rem;
+    transition: all 0.2s ease;
+}
+
+.card-header {
+    font-weight: 700;
+    font-size: 1.35rem;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-left: 5px solid #2c7da0;
+    padding-left: 1rem;
+    color: #0b3b4f;
+}
+
+label {
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: #2c5a6e;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 18px;
+    border: 1px solid #cbdde6;
+    background: #fff;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: 0.2s;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #2c7da0;
+    box-shadow: 0 0 0 3px rgba(44,125,160,0.2);
+}
+
+.row-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.8rem;
+}
+
+.col {
+    flex: 1;
+    min-width: 120px;
+}
+
+button {
+    background: #2c7da0;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 40px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+    width: 100%;
+    font-family: inherit;
+}
+
+button.secondary {
+    background: #e9ecef;
+    color: #1e4a62;
+    border: 1px solid #cbdde6;
+}
+
+button.danger {
+    background: #f8d7da;
+    color: #b02a37;
+    border: 1px solid #f5c2c7;
+}
+
+button.warning {
+    background: #fff3cd;
+    color: #997404;
+    border: 1px solid #ffeeba;
+}
+
+.btn-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.result-box {
+    background: #eef3f7;
+    border-radius: 24px;
+    padding: 0.9rem;
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+}
+
+.result-item {
+    text-align: center;
+}
+
+.result-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: #2c7da0;
+}
+
+.result-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f4c5f;
+}
+
+.stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: #eef3f7;
+    border-radius: 24px;
+    padding: 1rem;
+    flex: 1;
+    text-align: center;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+th, td {
+    padding: 12px 5px;
+    border-bottom: 1px solid #dce5ec;
+    text-align: left;
+}
+
+th {
+    font-weight: 600;
+    color: #2c5a6e;
+}
+
+.action-icons {
+    display: flex;
+    gap: 10px;
+}
+
+.action-icons span {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.edit-icon { color: #2c7da0; }
+.delete-icon { color: #c44536; }
+
+.month-selector {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+canvas { 
+    max-height: 200px; 
+    width: 100%; 
+    margin-top: 1rem; 
+}
+
+@media (max-width: 540px) {
+    body { padding: 12px; }
+    .result-value { font-size: 1.2rem; }
+    .card { padding: 1rem; }
+    .stats-grid { flex-direction: column; }
+}
