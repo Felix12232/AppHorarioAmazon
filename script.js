@@ -61,7 +61,7 @@ function setFechaActual() {
 async function guardarRegistro() {
     const fecha = document.getElementById('fechaInput').value;
     if (!fecha) {
-        alert("Selecciona una fecha");
+        alert("❌ Selecciona una fecha");
         return;
     }
     
@@ -86,7 +86,10 @@ async function guardarRegistro() {
     try {
         const response = await fetch(SCRIPT_URL, {
             method: "POST",
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
             body: payload
         });
         
@@ -99,8 +102,8 @@ async function guardarRegistro() {
             alert("❌ Error: " + (result.error || "No se pudo guardar"));
         }
     } catch (error) {
-        console.error(error);
-        alert("Error de conexión. Verifica la URL de Apps Script");
+        console.error("Error al guardar:", error);
+        alert("❌ Error de conexión. Verifica que la URL de Apps Script sea correcta y esté desplegada correctamente.");
     }
 }
 
@@ -113,7 +116,7 @@ async function obtenerDatos(mes = null) {
     
     const url = `${SCRIPT_URL}?action=getStats&mes=${mes}&t=${Date.now()}`;
     try {
-        const resp = await fetch(url);
+        const resp = await fetch(url, { mode: 'cors' });
         const data = await resp.json();
         return data;
     } catch (e) {
@@ -145,12 +148,12 @@ async function cargarEstadisticasCompletas() {
                 <tr>
                     <td>${h.mes}</td>
                     <td>${h.totalHoras.toFixed(2)}</td>
-                    <td>${h.totalSalario.toFixed(2)}</td>
+                    <td>${h.totalSalario.toFixed(2)}€</td>
                     <td>${h.dias}</td>
                 </tr>
             `).join('');
         } else {
-            tbodyHist.innerHTML = '<tr><td colspan="4">Sin datos históricos</td></td>';
+            tbodyHist.innerHTML = '<tr><td colspan="4">Sin datos históricos</td><td></td><td></td><td></td></tr>';
         }
         
         // Gráfica
@@ -159,10 +162,10 @@ async function cargarEstadisticasCompletas() {
         chartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Horas trabajadas', 'Salario (€)'],
+                labels: ['Horas trabajadas', `Salario (€)`],
                 datasets: [{
                     label: `${document.getElementById('mesSelector').value}`,
-                    data: [data.horasMes || 0, data.salarioMes || 0],
+                    data: [data.horasMes || 0, (data.salarioMes || 0)],
                     backgroundColor: ['#2c7da0', '#61a5c2']
                 }]
             },
@@ -174,35 +177,34 @@ async function cargarEstadisticasCompletas() {
         });
     } else {
         console.warn("Error en datos o sin conexión");
+        document.getElementById('horasMes').innerText = "0";
+        document.getElementById('salarioMes').innerText = "0 €";
+        document.getElementById('diasMes').innerText = "0";
     }
 }
 
 async function cargarRegistrosRecientes() {
     const url = `${SCRIPT_URL}?action=getRegistros&t=${Date.now()}`;
     try {
-        const resp = await fetch(url);
+        const resp = await fetch(url, { mode: 'cors' });
         const registros = await resp.json();
         const tbody = document.querySelector("#registrosTable tbody");
         
         if (registros && registros.length) {
             tbody.innerHTML = registros.map(reg => `
                 <tr>
-                    <td>${reg.fecha}</td>
-                    <td>${reg.entrada}</td>
-                    <td>${reg.salida}</td>
-                    <td>${reg.horasExtras}</td>
-                    <td>${reg.horasTotales}</td>
+                    <td>${reg.fecha}</td><td>${reg.entrada}</td><td>${reg.salida}</td>
+                    <td>${reg.horasExtras}</td><td>${reg.horasTotales}</td>
                     <td>${parseFloat(reg.salario).toFixed(2)}€</td>
                     <td class="action-icons">
                         <span class="edit-icon" data-id="${reg.id}" data-fecha="${reg.fecha}" 
                               data-entrada="${reg.entrada}" data-salida="${reg.salida}" 
-                              data-extras="${reg.horasExtras}" data-totales="${reg.horasTotales}">✏️</span>
+                              data-extras="${reg.horasExtras}">✏️</span>
                         <span class="delete-icon" data-id="${reg.id}">🗑️</span>
                     </td>
                 </tr>
             `).join('');
             
-            // Eventos editar/eliminar
             document.querySelectorAll('.edit-icon').forEach(el => {
                 el.addEventListener('click', () => editarRegistro(el.dataset));
             });
@@ -210,23 +212,22 @@ async function cargarRegistrosRecientes() {
                 el.addEventListener('click', () => eliminarRegistro(el.dataset.id));
             });
         } else {
-            tbody.innerHTML = '<tr><td colspan="7">No hay registros</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7">📭 No hay registros aún. ¡Crea tu primer registro!</td></tr>';
         }
     } catch (e) {
         console.error("Error registros", e);
-        document.querySelector("#registrosTable tbody").innerHTML = '<tr><td colspan="7">Error al cargar datos</td></tr>';
+        document.querySelector("#registrosTable tbody").innerHTML = '<tr><td colspan="7">⚠️ Error al cargar datos. Verifica la conexión con Google Sheets.</td></tr>';
     }
 }
 
 async function editarRegistro(datos) {
-    const nuevaFecha = prompt("Nueva fecha (YYYY-MM-DD):", datos.fecha);
+    const nuevaFecha = prompt("📅 Nueva fecha (YYYY-MM-DD):", datos.fecha);
     if (!nuevaFecha) return;
-    const nuevaEntrada = prompt("Hora entrada (HH:MM):", datos.entrada);
-    const nuevaSalida = prompt("Hora salida (HH:MM):", datos.salida);
-    const nuevasExtras = parseFloat(prompt("Horas extras:", datos.extras));
+    const nuevaEntrada = prompt("🕒 Hora entrada (HH:MM):", datos.entrada);
+    const nuevaSalida = prompt("🕒 Hora salida (HH:MM):", datos.salida);
+    const nuevasExtras = parseFloat(prompt("➕ Horas extras:", datos.extras));
     if (isNaN(nuevasExtras)) return;
     
-    // Recalcular horas base
     let horasBaseCalc = 0;
     if (nuevaEntrada && nuevaSalida) {
         const [startHour, startMin] = nuevaEntrada.split(':').map(Number);
@@ -252,6 +253,7 @@ async function editarRegistro(datos) {
     try {
         const response = await fetch(SCRIPT_URL, { 
             method: "POST", 
+            mode: 'cors',
             body: payload 
         });
         const result = await response.json();
@@ -277,6 +279,7 @@ async function eliminarRegistro(id) {
         try {
             const response = await fetch(SCRIPT_URL, { 
                 method: "POST", 
+                mode: 'cors',
                 body: payload 
             });
             const result = await response.json();
