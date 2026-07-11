@@ -21,8 +21,10 @@
             <div class="col">
                 <label>⏱️ Tipo horario</label>
                 <select id="tipoHorario">
-                    <option value="normal">Horario normal (17:00-23:00) - 6h</option>
                     <option value="especial">Horario especial (15:30-23:00) - 7.5h</option>
+                    <option value="normal_16">Horario (16:00-23:00) - 7h</option>
+                    <option value="normal_16_30">Horario (16:30-23:00) - 6.5h</option>
+                    <option value="normal">Horario normal (17:00-23:00) - 6h</option>
                     <option value="custom">Personalizado (definir entrada/salida)</option>
                 </select>
             </div>
@@ -39,7 +41,7 @@
         <div class="row-flex">
             <div class="col">
                 <label>➕ Horas extras (decimal, ej: 1.5)</label>
-                <input type="number" step="any" id="horasExtras" value="0" placeholder="0">
+                <input type="number" step="0.1" id="horasExtras" value="0" placeholder="0">
             </div>
             <div class="col">
                 <label>💰 Precio por hora (€)</label>
@@ -67,6 +69,11 @@
             <div class="stat-card"><div class="result-label">Horas este mes</div><div class="result-value" id="horasMes">0</div></div>
             <div class="stat-card"><div class="result-label">Salario acum. mes</div><div class="result-value" id="salarioMes">0.00 €</div></div>
             <div class="stat-card"><div class="result-label">Días trabajados</div><div class="result-value" id="diasMes">0</div></div>
+            <!-- Valor final del mes a 9,60€/hora -->
+            <div class="stat-card valor-final-card">
+                <div class="result-label">💰 Valor final mes (9,60€/h)</div>
+                <div class="result-value valor-final" id="valorFinalMes">0.00 €</div>
+            </div>
         </div>
 
         <div class="month-selector">
@@ -76,7 +83,7 @@
         </div>
 
         <div style="margin-top: 1rem;">
-            <h4 style="font-weight: 600; margin-bottom: 0.8rem;">📈 Gráfico mensual: Horas vs Salario</h4>
+            <h4 style="font-weight: 600; margin-bottom: 0.8rem;">📈 Gráfico mensual</h4>
             <canvas id="mesChart" width="400" height="200"></canvas>
         </div>
 
@@ -85,9 +92,15 @@
             <div style="overflow-x: auto;">
                 <table id="historialMesesTable">
                     <thead>
-                        <tr><th>Año-Mes</th><th>Horas</th><th>Salario (€)</th><th>Días</th></tr>
+                        <tr>
+                            <th>Año-Mes</th>
+                            <th>Horas</th>
+                            <th>Salario (€)</th>
+                            <th>Días</th>
+                            <th style="color: #28a745;">💰 Valor final (9,60€/h)</th>
+                        </tr>
                     </thead>
-                    <tbody><tr><td colspan="3">Cargando...</td></tr></tbody>
+                    <tbody><tr><td colspan="5" style="text-align:center;">Cargando...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -97,15 +110,23 @@
             <div style="overflow-x: auto;">
                 <table id="registrosTable">
                     <thead>
-                        <tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Extras</th><th>Total h</th><th>Salario</th><th>Acciones</th></tr>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Extras</th>
+                            <th>Total h</th>
+                            <th>Salario</th>
+                            <th>Acciones</th>
+                        </tr>
                     </thead>
-                    <tbody><tr><td colspan="7">Cargando datos...</td></tr></tbody>
+                    <tbody><tr><td colspan="7" style="text-align:center;">Cargando datos...</td></tr></tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
 
-<script src="/script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
