@@ -1,11 +1,8 @@
 // ==================== CONFIGURACIÓN ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDY3jxhPLFPWzWcNRQQ1fZuPjcyKE7QvuyhBzC76vb_T1_1oq9XYLbr0i09Sslx5BI/exec';
 const PRECIO_FIJO_MENSUAL = 9.60;
 
 // Variables globales
 let chartInstance = null;
-let registrosActuales = [];
-let estadisticasActuales = null;
 
 // ==================== FUNCIONES DE CÁLCULO ====================
 function calcularHorasBase() {
@@ -13,15 +10,14 @@ function calcularHorasBase() {
     const tipo = select.value;
     const textoSeleccionado = select.options[select.selectedIndex].text;
     
-    // Detectar el tipo de horario por el texto
     if (textoSeleccionado.includes('15:30')) {
-        return 7.5; // Horario especial
+        return 7.5;
     } else if (textoSeleccionado.includes('16:00')) {
-        return 7; // 16:00 - 23:00 = 7 horas
+        return 7;
     } else if (textoSeleccionado.includes('16:30')) {
-        return 6.5; // 16:30 - 23:00 = 6.5 horas
+        return 6.5;
     } else if (textoSeleccionado.includes('17:00')) {
-        return 6; // 17:00 - 23:00 = 6 horas
+        return 6;
     } else if (tipo === 'custom') {
         const entrada = document.getElementById('entradaCustom').value;
         const salida = document.getElementById('salidaCustom').value;
@@ -32,7 +28,7 @@ function calcularHorasBase() {
         if (horas < 0) horas += 24;
         return horas > 0 ? horas : 0;
     }
-    return 6; // Valor por defecto
+    return 6;
 }
 
 function actualizarCalculos() {
@@ -41,85 +37,11 @@ function actualizarCalculos() {
     const precio = parseFloat(document.getElementById('precioHora').value) || 0;
     const totalHoras = horasBase + extras;
     const salario = totalHoras * precio;
-    const valorFinalDia = totalHoras * PRECIO_FIJO_MENSUAL;
     
     document.getElementById('horasBaseDisplay').innerText = horasBase.toFixed(2);
     document.getElementById('extrasDisplay').innerText = extras.toFixed(2);
     document.getElementById('totalHorasDisplay').innerText = totalHoras.toFixed(2);
     document.getElementById('salarioDisplay').innerText = salario.toFixed(2);
-    
-    // Actualizar el total del mes en tiempo real
-    actualizarTotalMesEnTiempoReal();
-}
-
-function actualizarTotalMesEnTiempoReal() {
-    const fechaSeleccionada = document.getElementById('fechaInput').value;
-    if (!fechaSeleccionada) return;
-    
-    const mesSeleccionado = fechaSeleccionada.substring(0, 7);
-    const mesActual = document.getElementById('mesSelector').value;
-    
-    // Solo actualizar si el mes seleccionado coincide con el mes del formulario
-    if (mesSeleccionado !== mesActual) return;
-    
-    // Calcular el total del día actual
-    const horasBase = calcularHorasBase();
-    const extras = parseFloat(document.getElementById('horasExtras').value) || 0;
-    const totalHorasDia = horasBase + extras;
-    const valorFinalDia = totalHorasDia * PRECIO_FIJO_MENSUAL;
-    const precio = parseFloat(document.getElementById('precioHora').value) || 0;
-    const salarioDia = totalHorasDia * precio;
-    
-    // Buscar si ya existe un registro para hoy
-    const registroExistente = registrosActuales.find(r => r.fecha === fechaSeleccionada && !r.esResumen);
-    
-    // Calcular total del mes
-    let totalHorasMes = 0;
-    let totalSalarioMes = 0;
-    let totalValorFinalMes = 0;
-    let diasMes = 0;
-    
-    registrosActuales.forEach(reg => {
-        if (reg.fecha && reg.fecha.substring(0, 7) === mesSeleccionado && !reg.esResumen) {
-            // Si es el día actual, usar los valores del formulario
-            if (reg.fecha === fechaSeleccionada) {
-                totalHorasMes += totalHorasDia;
-                totalSalarioMes += salarioDia;
-                totalValorFinalMes += valorFinalDia;
-            } else {
-                const horas = parseFloat(reg.horasTotales) || 0;
-                totalHorasMes += horas;
-                totalSalarioMes += parseFloat(reg.salario) || 0;
-                totalValorFinalMes += horas * PRECIO_FIJO_MENSUAL;
-            }
-            diasMes++;
-        }
-    });
-    
-    // Si no hay registro para hoy, agregar el día actual
-    if (!registroExistente && totalHorasDia > 0) {
-        totalHorasMes += totalHorasDia;
-        totalSalarioMes += salarioDia;
-        totalValorFinalMes += valorFinalDia;
-        diasMes++;
-    }
-    
-    // Actualizar la interfaz
-    document.getElementById('horasMes').innerText = totalHorasMes.toFixed(2);
-    document.getElementById('salarioMes').innerText = totalSalarioMes.toFixed(2) + " €";
-    document.getElementById('diasMes').innerText = diasMes;
-    document.getElementById('valorFinalMes').innerText = totalValorFinalMes.toFixed(2) + " €";
-    
-    // Actualizar el gráfico
-    actualizarGraficoTiempoReal(mesSeleccionado, totalHorasMes, totalSalarioMes, totalValorFinalMes);
-}
-
-function actualizarGraficoTiempoReal(mes, horas, salario, valorFinal) {
-    if (chartInstance) {
-        chartInstance.data.datasets[0].data = [horas, salario, valorFinal];
-        chartInstance.data.datasets[0].label = obtenerNombreMes(mes);
-        chartInstance.update();
-    }
 }
 
 function toggleCustom() {
@@ -134,7 +56,6 @@ function getEntradaSalidaTexto() {
     const textoSeleccionado = select.options[select.selectedIndex].text;
     const tipo = select.value;
     
-    // Detectar el tipo de horario por el texto
     if (textoSeleccionado.includes('15:30')) {
         return { entrada: "15:30", salida: "23:00" };
     } else if (textoSeleccionado.includes('16:00')) {
@@ -157,11 +78,12 @@ function setFechaActual() {
     document.getElementById('fechaInput').value = today;
 }
 
-// ==================== PETICIONES A APPS SCRIPT ====================
-async function guardarRegistro() {
+// ==================== FUNCIONES CON GOOGLE.SCRIPT.RUN ====================
+
+function guardarRegistro() {
     const fecha = document.getElementById('fechaInput').value;
     if (!fecha) {
-        alert("❌ Selecciona una fecha");
+        mostrarMensaje("❌ Selecciona una fecha", "error");
         return;
     }
     
@@ -172,238 +94,257 @@ async function guardarRegistro() {
     const horasTotales = horasBase + horasExtrasVal;
     const salarioDia = horasTotales * precioHoraVal;
     
-    const payload = new URLSearchParams({
-        action: "guardar",
-        fecha: fecha,
-        entrada: entrada,
-        salida: salida,
-        horasExtras: horasExtrasVal,
-        horasTotales: horasTotales,
-        salario: salarioDia
-    });
+    mostrarMensaje('💾 Guardando registro...', 'info');
     
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: "POST",
-            mode: 'cors',
-            headers: { 
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: payload
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-            alert("✅ Registro guardado correctamente");
-            await cargarRegistrosRecientes();
-            await cargarEstadisticasCompletas();
-            // Resetear horas extras después de guardar
-            document.getElementById('horasExtras').value = 0;
-            actualizarCalculos();
-        } else {
-            alert("❌ Error: " + (result.error || "No se pudo guardar"));
-        }
-    } catch (error) {
-        console.error("Error al guardar:", error);
-        alert("❌ Error de conexión. Verifica que la URL de Apps Script sea correcta.");
+    google.script.run
+        .withSuccessHandler(function(response) {
+            if (response.success) {
+                mostrarMensaje('✅ ' + response.message, 'success');
+                document.getElementById('horasExtras').value = 0;
+                actualizarCalculos();
+                cargarTodosLosDatos();
+            } else {
+                mostrarMensaje('❌ Error: ' + response.error, 'error');
+            }
+        })
+        .withFailureHandler(function(error) {
+            mostrarMensaje('❌ Error de conexión: ' + error.message, 'error');
+        })
+        .guardarRegistro(fecha, entrada, salida, horasExtrasVal, horasTotales, salarioDia);
+}
+
+function cargarTodosLosDatos() {
+    mostrarMensaje('🔄 Cargando datos...', 'info');
+    
+    google.script.run
+        .withSuccessHandler(function(response) {
+            if (response.success) {
+                procesarDatos(response);
+            } else {
+                mostrarMensaje('❌ Error al cargar datos: ' + (response.error || 'Error desconocido'), 'error');
+            }
+        })
+        .withFailureHandler(function(error) {
+            mostrarMensaje('❌ Error de conexión: ' + error.message, 'error');
+        })
+        .getEmployeeData();
+}
+
+function procesarDatos(response) {
+    // Actualizar tabla de registros
+    actualizarTablaRegistros(response.data || []);
+    
+    // Actualizar estadísticas
+    actualizarEstadisticas(response.data || []);
+    
+    // Actualizar gráfico
+    actualizarGrafico(response.data || []);
+    
+    // Actualizar historial
+    actualizarHistorialMeses(response.data || []);
+    
+    mostrarMensaje('✅ Datos cargados correctamente', 'success');
+}
+
+function actualizarTablaRegistros(data) {
+    const tbody = document.querySelector("#registrosTable tbody");
+    if (!tbody) return;
+    
+    if (data && data.length > 0) {
+        tbody.innerHTML = data.map(function(item, index) {
+            return `
+                <tr>
+                    <td>${item.date || ''}</td>
+                    <td>${item.entryTime || ''}</td>
+                    <td>${item.exitTime || ''}</td>
+                    <td>${(item.extraHours || 0).toFixed(1)}</td>
+                    <td>${(item.totalHours || 0).toFixed(2)}</td>
+                    <td>${(item.dailySalary || 0).toFixed(2)}€</td>
+                    <td class="action-icons">
+                        <span class="edit-icon" onclick="editarRegistro(${index})" title="Editar">✏️</span>
+                        <span class="delete-icon" onclick="eliminarRegistro(${index})" title="Eliminar">🗑️</span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } else {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">📭 No hay registros aún. ¡Crea tu primer registro!</td></tr>';
     }
 }
 
-async function obtenerDatos(mes = null) {
-    if (!mes) {
-        const hoy = new Date();
-        mes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-        document.getElementById('mesSelector').value = mes;
-    }
+function actualizarEstadisticas(data) {
+    const mesActual = document.getElementById('mesSelector').value || new Date().toISOString().slice(0, 7);
+    let totalHorasMes = 0;
+    let totalSalarioMes = 0;
+    let totalValorFinalMes = 0;
+    let diasMes = 0;
     
-    const url = `${SCRIPT_URL}?action=getStats&mes=${mes}&t=${Date.now()}`;
-    try {
-        const resp = await fetch(url, { mode: 'cors' });
-        const data = await resp.json();
-        return data;
-    } catch (e) {
-        console.warn("Error fetch stats", e);
-        return { error: true, message: e.message };
-    }
-}
-
-async function cargarEstadisticasCompletas() {
-    const mesActual = document.getElementById('mesSelector').value;
-    if (!mesActual) {
-        const hoy = new Date();
-        const mesDef = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-        document.getElementById('mesSelector').value = mesDef;
-    }
-    
-    const data = await obtenerDatos(document.getElementById('mesSelector').value);
-    estadisticasActuales = data;
-    
-    if (data && !data.error) {
-        const horasMes = data.horasMes || 0;
-        const salarioMes = data.salarioMes || 0;
-        const valorFinalMes = data.valorFinalMes || (horasMes * PRECIO_FIJO_MENSUAL);
-        const diasMes = data.diasMes || 0;
-        
-        document.getElementById('horasMes').innerText = horasMes.toFixed(2);
-        document.getElementById('salarioMes').innerText = salarioMes.toFixed(2) + " €";
-        document.getElementById('diasMes').innerText = diasMes;
-        document.getElementById('valorFinalMes').innerText = valorFinalMes.toFixed(2) + " €";
-        
-        // Historial de meses
-        const historial = data.historialMeses || [];
-        const tbodyHist = document.querySelector("#historialMesesTable tbody");
-        if (historial.length > 0) {
-            tbodyHist.innerHTML = historial.map(h => {
-                const valorFinalHistorico = h.totalValorFinal || (h.totalHoras * PRECIO_FIJO_MENSUAL);
-                return `
-                    <tr>
-                        <td><strong>${h.nombreMes || h.mes}</strong></td>
-                        <td>${(h.totalHoras || 0).toFixed(2)}</td>
-                        <td>${(h.totalSalario || 0).toFixed(2)}€</td>
-                        <td>${h.dias || 0}</td>
-                        <td style="font-weight: bold; color: #28a745;">${valorFinalHistorico.toFixed(2)}€</td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            tbodyHist.innerHTML = '<tr><td colspan="5" style="text-align:center;">📭 Sin datos históricos</td></tr>';
-        }
-        
-        // Gráfica
-        if (chartInstance) chartInstance.destroy();
-        const ctx = document.getElementById('mesChart').getContext('2d');
-        const mesSeleccionado = document.getElementById('mesSelector').value;
-        const nombreMes = obtenerNombreMes(mesSeleccionado);
-        
-        chartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Horas trabajadas', 'Salario (precio variable)', 'Valor final (9,60€/h)'],
-                datasets: [{
-                    label: nombreMes || mesSeleccionado,
-                    data: [
-                        horasMes, 
-                        salarioMes,
-                        valorFinalMes
-                    ],
-                    backgroundColor: ['#2c7da0', '#61a5c2', '#28a745'],
-                    borderColor: ['#1a5a7a', '#4a8aaa', '#1e7e34'],
-                    borderWidth: 2
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: true,
-                plugins: { 
-                    legend: { 
-                        position: 'top',
-                        labels: {
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (context.parsed.y !== null) {
-                                    if (context.dataIndex === 0) {
-                                        label += ': ' + context.parsed.y.toFixed(2) + ' horas';
-                                    } else {
-                                        label += ': ' + context.parsed.y.toFixed(2) + ' €';
-                                    }
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toFixed(1);
-                            }
-                        }
+    if (data && data.length > 0) {
+        data.forEach(function(item) {
+            if (item.date) {
+                const partes = item.date.split('/');
+                if (partes.length === 3) {
+                    const fechaObj = new Date(partes[2], partes[1] - 1, partes[0]);
+                    const mesKey = fechaObj.getFullYear() + '-' + String(fechaObj.getMonth() + 1).padStart(2, '0');
+                    if (mesKey === mesActual) {
+                        totalHorasMes += item.totalHours || 0;
+                        totalSalarioMes += item.dailySalary || 0;
+                        totalValorFinalMes += (item.totalHours || 0) * PRECIO_FIJO_MENSUAL;
+                        diasMes++;
                     }
                 }
             }
         });
-        
-        // Actualizar en tiempo real
-        actualizarTotalMesEnTiempoReal();
-    } else {
-        console.warn("Error en datos o sin conexión");
-        document.getElementById('horasMes').innerText = "0";
-        document.getElementById('salarioMes').innerText = "0 €";
-        document.getElementById('diasMes').innerText = "0";
-        document.getElementById('valorFinalMes').innerText = "0.00 €";
-        
-        const tbodyHist = document.querySelector("#historialMesesTable tbody");
-        tbodyHist.innerHTML = '<tr><td colspan="5" style="text-align:center;">⚠️ Error al cargar datos</td></tr>';
     }
+    
+    document.getElementById('horasMes').innerText = totalHorasMes.toFixed(2);
+    document.getElementById('salarioMes').innerText = totalSalarioMes.toFixed(2) + " €";
+    document.getElementById('diasMes').innerText = diasMes;
+    document.getElementById('valorFinalMes').innerText = totalValorFinalMes.toFixed(2) + " €";
 }
 
-async function cargarRegistrosRecientes() {
-    const url = `${SCRIPT_URL}?action=getRegistros&t=${Date.now()}`;
-    try {
-        const resp = await fetch(url, { mode: 'cors' });
-        const registros = await resp.json();
-        registrosActuales = Array.isArray(registros) ? registros : [];
-        
-        const tbody = document.querySelector("#registrosTable tbody");
-        
-        // Filtrar solo registros reales (no resúmenes)
-        const registrosReales = registrosActuales.filter(r => !r.esResumen);
-        
-        if (registrosReales.length > 0) {
-            tbody.innerHTML = registrosReales.map(reg => `
+function actualizarHistorialMeses(data) {
+    const tbodyHist = document.querySelector("#historialMesesTable tbody");
+    if (!tbodyHist) return;
+    
+    const meses = {};
+    
+    if (data && data.length > 0) {
+        data.forEach(function(item) {
+            if (item.date) {
+                const partes = item.date.split('/');
+                if (partes.length === 3) {
+                    const fechaObj = new Date(partes[2], partes[1] - 1, partes[0]);
+                    const mesKey = fechaObj.getFullYear() + '-' + String(fechaObj.getMonth() + 1).padStart(2, '0');
+                    const nombreMes = obtenerNombreMes(mesKey);
+                    
+                    if (!meses[mesKey]) {
+                        meses[mesKey] = {
+                            nombreMes: nombreMes,
+                            totalHoras: 0,
+                            totalSalario: 0,
+                            totalValorFinal: 0,
+                            dias: 0
+                        };
+                    }
+                    
+                    meses[mesKey].totalHoras += item.totalHours || 0;
+                    meses[mesKey].totalSalario += item.dailySalary || 0;
+                    meses[mesKey].totalValorFinal += (item.totalHours || 0) * PRECIO_FIJO_MENSUAL;
+                    meses[mesKey].dias++;
+                }
+            }
+        });
+    }
+    
+    const keys = Object.keys(meses).sort().reverse();
+    
+    if (keys.length > 0) {
+        tbodyHist.innerHTML = keys.map(key => {
+            const m = meses[key];
+            return `
                 <tr>
-                    <td>${reg.fecha || ''}</td>
-                    <td>${reg.entrada || ''}</td>
-                    <td>${reg.salida || ''}</td>
-                    <td>${parseFloat(reg.horasExtras || 0).toFixed(1)}</td>
-                    <td>${parseFloat(reg.horasTotales || 0).toFixed(2)}</td>
-                    <td>${parseFloat(reg.salario || 0).toFixed(2)}€</td>
-                    <td class="action-icons">
-                        <span class="edit-icon" data-id="${reg.id}" data-fecha="${reg.fecha}" 
-                              data-entrada="${reg.entrada}" data-salida="${reg.salida}" 
-                              data-extras="${reg.horasExtras}">✏️</span>
-                        <span class="delete-icon" data-id="${reg.id}">🗑️</span>
-                    </td>
+                    <td><strong>${m.nombreMes}</strong></td>
+                    <td>${m.totalHoras.toFixed(2)}</td>
+                    <td>${m.totalSalario.toFixed(2)}€</td>
+                    <td>${m.dias}</td>
+                    <td style="font-weight: bold; color: #28a745;">${m.totalValorFinal.toFixed(2)}€</td>
                 </tr>
-            `).join('');
-            
-            // Event listeners para editar
-            document.querySelectorAll('.edit-icon').forEach(el => {
-                el.addEventListener('click', () => editarRegistro(el.dataset));
-            });
-            // Event listeners para eliminar
-            document.querySelectorAll('.delete-icon').forEach(el => {
-                el.addEventListener('click', () => eliminarRegistro(el.dataset.id));
-            });
-        } else {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">📭 No hay registros aún. ¡Crea tu primer registro!</td></tr>';
-        }
-        
-        // Actualizar cálculos en tiempo real
-        actualizarTotalMesEnTiempoReal();
-    } catch (e) {
-        console.error("Error registros", e);
-        document.querySelector("#registrosTable tbody").innerHTML = '<tr><td colspan="7" style="text-align:center;">⚠️ Error al cargar datos</td></tr>';
+            `;
+        }).join('');
+    } else {
+        tbodyHist.innerHTML = '<tr><td colspan="5" style="text-align:center;">📭 Sin datos históricos</td></tr>';
     }
 }
 
-// ==================== FUNCIONES DE UTILIDAD ====================
+function actualizarGrafico(data) {
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
+    
+    const mesActual = document.getElementById('mesSelector').value || new Date().toISOString().slice(0, 7);
+    let totalHorasMes = 0;
+    let totalSalarioMes = 0;
+    let totalValorFinalMes = 0;
+    
+    if (data && data.length > 0) {
+        data.forEach(function(item) {
+            if (item.date) {
+                const partes = item.date.split('/');
+                if (partes.length === 3) {
+                    const fechaObj = new Date(partes[2], partes[1] - 1, partes[0]);
+                    const mesKey = fechaObj.getFullYear() + '-' + String(fechaObj.getMonth() + 1).padStart(2, '0');
+                    if (mesKey === mesActual) {
+                        totalHorasMes += item.totalHours || 0;
+                        totalSalarioMes += item.dailySalary || 0;
+                        totalValorFinalMes += (item.totalHours || 0) * PRECIO_FIJO_MENSUAL;
+                    }
+                }
+            }
+        });
+    }
+    
+    const ctx = document.getElementById('mesChart');
+    if (!ctx) return;
+    
+    const canvas = ctx.getContext('2d');
+    chartInstance = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: ['Horas trabajadas', 'Salario (precio variable)', 'Valor final (9,60€/h)'],
+            datasets: [{
+                label: obtenerNombreMes(mesActual) || mesActual,
+                data: [totalHorasMes, totalSalarioMes, totalValorFinalMes],
+                backgroundColor: ['#2c7da0', '#61a5c2', '#28a745'],
+                borderColor: ['#1a5a7a', '#4a8aaa', '#1e7e34'],
+                borderWidth: 2
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: true,
+            plugins: { 
+                legend: { 
+                    position: 'top',
+                    labels: {
+                        font: { size: 12, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (context.parsed.y !== null) {
+                                if (context.dataIndex === 0) {
+                                    label += ': ' + context.parsed.y.toFixed(2) + ' horas';
+                                } else {
+                                    label += ': ' + context.parsed.y.toFixed(2) + ' €';
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(1);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 function obtenerNombreMes(mesKey) {
     if (!mesKey) return '';
-    const meses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const partes = mesKey.split('-');
     if (partes.length === 2) {
         const mesNum = parseInt(partes[1]);
@@ -412,88 +353,42 @@ function obtenerNombreMes(mesKey) {
     return mesKey;
 }
 
-// ==================== EDITAR Y ELIMINAR ====================
-async function editarRegistro(datos) {
-    const nuevaFecha = prompt("📅 Nueva fecha (YYYY-MM-DD):", datos.fecha);
-    if (!nuevaFecha) return;
-    const nuevaEntrada = prompt("🕒 Hora entrada (HH:MM):", datos.entrada);
-    const nuevaSalida = prompt("🕒 Hora salida (HH:MM):", datos.salida);
-    const nuevasExtras = parseFloat(prompt("➕ Horas extras:", datos.extras));
-    if (isNaN(nuevasExtras)) return;
-    
-    let horasBaseCalc = 0;
-    if (nuevaEntrada && nuevaSalida) {
-        const [startHour, startMin] = nuevaEntrada.split(':').map(Number);
-        const [endHour, endMin] = nuevaSalida.split(':').map(Number);
-        horasBaseCalc = endHour - startHour + (endMin - startMin) / 60;
-        if (horasBaseCalc < 0) horasBaseCalc += 24;
+function mostrarMensaje(texto, tipo) {
+    let messageDiv = document.getElementById('message');
+    if (!messageDiv) {
+        messageDiv = document.createElement('div');
+        messageDiv.id = 'message';
+        messageDiv.className = 'message';
+        const container = document.querySelector('.container');
+        container.insertBefore(messageDiv, container.firstChild);
     }
-    const totalHorasNuevas = horasBaseCalc + nuevasExtras;
-    const precio = parseFloat(document.getElementById('precioHora').value) || 9.90;
-    const salarioNuevo = totalHorasNuevas * precio;
     
-    const payload = new URLSearchParams({
-        action: "editar",
-        id: datos.id,
-        fecha: nuevaFecha,
-        entrada: nuevaEntrada,
-        salida: nuevaSalida,
-        horasExtras: nuevasExtras,
-        horasTotales: totalHorasNuevas,
-        salario: salarioNuevo
-    });
+    messageDiv.textContent = texto;
+    messageDiv.className = 'message ' + tipo;
+    messageDiv.style.display = 'block';
     
-    try {
-        const response = await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            mode: 'cors',
-            body: payload 
-        });
-        const result = await response.json();
-        if (result.success) {
-            alert("✅ Registro editado correctamente");
-            await cargarRegistrosRecientes();
-            await cargarEstadisticasCompletas();
-        } else {
-            alert("❌ Error al editar: " + (result.error || "Error desconocido"));
-        }
-    } catch (error) {
-        console.error(error);
-        alert("❌ Error al editar");
+    if (tipo === 'success' || tipo === 'info') {
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
     }
 }
 
-async function eliminarRegistro(id) {
-    if (!confirm("¿Eliminar este registro?")) return;
-    
-    const payload = new URLSearchParams({ 
-        action: "eliminar", 
-        id: id 
-    });
-    try {
-        const response = await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            mode: 'cors',
-            body: payload 
-        });
-        const result = await response.json();
-        if (result.success) {
-            alert("✅ Registro eliminado");
-            await cargarRegistrosRecientes();
-            await cargarEstadisticasCompletas();
-        } else {
-            alert("❌ Error al eliminar: " + (result.error || "Error desconocido"));
-        }
-    } catch (error) {
-        console.error(error);
-        alert("❌ Error al eliminar");
+// ==================== EDITAR Y ELIMINAR (pendientes de implementar) ====================
+function editarRegistro(index) {
+    mostrarMensaje('✏️ Función de editar en desarrollo. Índice: ' + index, 'info');
+}
+
+function eliminarRegistro(index) {
+    if (confirm('¿Eliminar este registro?')) {
+        mostrarMensaje('🗑️ Función de eliminar en desarrollo. Índice: ' + index, 'info');
     }
 }
 
 // ==================== EVENTOS E INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', function() {
     // Event listeners
-    document.getElementById('tipoHorario').addEventListener('change', () => { 
+    document.getElementById('tipoHorario').addEventListener('change', function() { 
         toggleCustom(); 
         actualizarCalculos(); 
     });
@@ -501,24 +396,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('precioHora').addEventListener('input', actualizarCalculos);
     document.getElementById('entradaCustom').addEventListener('change', actualizarCalculos);
     document.getElementById('salidaCustom').addEventListener('change', actualizarCalculos);
-    document.getElementById('fechaInput').addEventListener('change', actualizarTotalMesEnTiempoReal);
     document.getElementById('guardarBtn').addEventListener('click', guardarRegistro);
-    document.getElementById('actualizarEstadisticasBtn').addEventListener('click', () => { 
-        cargarEstadisticasCompletas(); 
-        cargarRegistrosRecientes(); 
-    });
-    document.getElementById('mesSelector').addEventListener('change', () => {
-        cargarEstadisticasCompletas();
-    });
+    document.getElementById('actualizarEstadisticasBtn').addEventListener('click', cargarTodosLosDatos);
+    document.getElementById('mesSelector').addEventListener('change', cargarTodosLosDatos);
     
     // Inicialización
     setFechaActual();
     toggleCustom();
     actualizarCalculos();
     
-    // Cargar datos con un pequeño retraso para asegurar que todo está listo
-    setTimeout(() => {
-        cargarEstadisticasCompletas();
-        cargarRegistrosRecientes();
-    }, 100);
+    // Cargar datos después de que todo esté listo
+    setTimeout(function() {
+        cargarTodosLosDatos();
+    }, 500);
 });
