@@ -1,6 +1,6 @@
 // ==================== CONFIGURACIÓN ====================
 const PRECIO_FIJO_MENSUAL = 9.60;
-const API_URL = 'https://script.google.com/macros/s/AKfycbw8N5KhC__YOUR_DEPLOYMENT_ID/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxUIJyjH-QSVmMA56m9iNvrnVQIv8NnuEttrVu1TbrNVxPbuhZTaYj3FSzkRx6MGO0/exec';
 
 // Variables globales
 let chartInstance = null;
@@ -80,91 +80,7 @@ function setFechaActual() {
     document.getElementById('fechaInput').value = today;
 }
 
-// ==================== FUNCIONES CON FETCH (Reemplazo de google.script.run) ====================
-
-/**
- * Llama a la API de Google Apps Script con fetch
- * @param {string} action - Acción a ejecutar (getEmployeeData, guardarRegistro, etc.)
- * @param {Object} params - Parámetros para la acción
- * @returns {Promise} - Promesa con la respuesta
- */
-function callAppsScript(action, params = {}) {
-    const url = new URL(API_URL);
-    url.searchParams.append('action', action);
-    
-    // Si hay parámetros, los añadimos a la URL para GET o al body para POST
-    const body = new FormData();
-    body.append('action', action);
-    
-    Object.keys(params).forEach(key => {
-        body.append(key, params[key]);
-    });
-    
-    return fetch(url.toString(), {
-        method: 'POST',
-        mode: 'no-cors', // Importante para Apps Script
-        body: body
-    })
-    .then(response => {
-        // Con no-cors, la respuesta es opaca, necesitamos un enfoque diferente
-        // Usamos el enfoque con callback
-        return response.text();
-    })
-    .then(text => {
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            throw new Error('Error al parsear respuesta: ' + text);
-        }
-    });
-}
-
-/**
- * Versión mejorada con JSONP para Apps Script
- */
-function callAppsScriptJSONP(action, params = {}) {
-    return new Promise((resolve, reject) => {
-        // Crear un ID único para el callback
-        const callbackName = 'callback_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
-        
-        // Construir URL con todos los parámetros
-        const url = new URL(API_URL);
-        url.searchParams.append('action', action);
-        url.searchParams.append('callback', callbackName);
-        
-        Object.keys(params).forEach(key => {
-            url.searchParams.append(key, params[key]);
-        });
-        
-        // Definir la función de callback global
-        window[callbackName] = function(data) {
-            delete window[callbackName];
-            document.body.removeChild(script);
-            resolve(data);
-        };
-        
-        // Crear y añadir el script
-        const script = document.createElement('script');
-        script.src = url.toString();
-        script.onerror = function() {
-            delete window[callbackName];
-            document.body.removeChild(script);
-            reject(new Error('Error al cargar el script'));
-        };
-        document.body.appendChild(script);
-        
-        // Timeout por si tarda demasiado
-        setTimeout(() => {
-            if (window[callbackName]) {
-                delete window[callbackName];
-                document.body.removeChild(script);
-                reject(new Error('Timeout al cargar los datos'));
-            }
-        }, 30000);
-    });
-}
-
-// ==================== FUNCIONES PRINCIPALES ====================
+// ==================== FUNCIONES CON FETCH ====================
 
 function guardarRegistro() {
     const fecha = document.getElementById('fechaInput').value;
@@ -182,7 +98,7 @@ function guardarRegistro() {
     
     mostrarMensaje('💾 Guardando registro...', 'info');
     
-    // Usar fetch en lugar de google.script.run
+    // Construir datos para enviar
     const params = new URLSearchParams();
     params.append('action', 'guardarRegistro');
     params.append('fecha', fecha);
@@ -200,10 +116,7 @@ function guardarRegistro() {
         },
         body: params.toString()
     })
-    .then(response => {
-        // Con no-cors no podemos leer la respuesta directamente
-        // Por eso usamos el enfoque alternativo con callAppsScriptJSONP
-        // O simplemente esperamos y recargamos
+    .then(() => {
         mostrarMensaje('✅ Registro guardado correctamente', 'success');
         document.getElementById('horasExtras').value = 0;
         actualizarCalculos();
@@ -211,7 +124,6 @@ function guardarRegistro() {
         setTimeout(() => {
             cargarTodosLosDatos();
         }, 2000);
-        return { success: true };
     })
     .catch(error => {
         mostrarMensaje('❌ Error al guardar: ' + error.message, 'error');
@@ -221,11 +133,10 @@ function guardarRegistro() {
 function cargarTodosLosDatos() {
     mostrarMensaje('🔄 Cargando datos...', 'info');
     
-    // Usar JSONP para obtener datos
-    const url = new URL(API_URL);
-    url.searchParams.append('action', 'getEmployeeData');
+    // Usar fetch para obtener datos
+    const url = API_URL + '?action=getEmployeeData';
     
-    fetch(url.toString(), {
+    fetch(url, {
         method: 'GET',
         mode: 'cors'
     })
@@ -552,7 +463,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (guardarBtn) guardarBtn.addEventListener('click', guardarRegistro);
     if (actualizarBtn) actualizarBtn.addEventListener('click', cargarTodosLosDatos);
     if (mesSelector) mesSelector.addEventListener('change', function() {
-        // Actualizar estadísticas con el mes seleccionado
         cargarTodosLosDatos();
     });
     
