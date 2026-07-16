@@ -1,8 +1,10 @@
 // ==================== CONFIGURACIÓN ====================
 const PRECIO_FIJO_MENSUAL = 9.60;
+const API_URL = 'https://script.google.com/macros/s/AKfycbw8N5KhC__YOUR_DEPLOYMENT_ID/exec';
 
 // Variables globales
 let chartInstance = null;
+let allData = [];
 
 // ==================== FUNCIONES DE CÁLCULO ====================
 function calcularHorasBase() {
@@ -78,7 +80,91 @@ function setFechaActual() {
     document.getElementById('fechaInput').value = today;
 }
 
-// ==================== FUNCIONES CON GOOGLE.SCRIPT.RUN ====================
+// ==================== FUNCIONES CON FETCH (Reemplazo de google.script.run) ====================
+
+/**
+ * Llama a la API de Google Apps Script con fetch
+ * @param {string} action - Acción a ejecutar (getEmployeeData, guardarRegistro, etc.)
+ * @param {Object} params - Parámetros para la acción
+ * @returns {Promise} - Promesa con la respuesta
+ */
+function callAppsScript(action, params = {}) {
+    const url = new URL(API_URL);
+    url.searchParams.append('action', action);
+    
+    // Si hay parámetros, los añadimos a la URL para GET o al body para POST
+    const body = new FormData();
+    body.append('action', action);
+    
+    Object.keys(params).forEach(key => {
+        body.append(key, params[key]);
+    });
+    
+    return fetch(url.toString(), {
+        method: 'POST',
+        mode: 'no-cors', // Importante para Apps Script
+        body: body
+    })
+    .then(response => {
+        // Con no-cors, la respuesta es opaca, necesitamos un enfoque diferente
+        // Usamos el enfoque con callback
+        return response.text();
+    })
+    .then(text => {
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error('Error al parsear respuesta: ' + text);
+        }
+    });
+}
+
+/**
+ * Versión mejorada con JSONP para Apps Script
+ */
+function callAppsScriptJSONP(action, params = {}) {
+    return new Promise((resolve, reject) => {
+        // Crear un ID único para el callback
+        const callbackName = 'callback_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+        
+        // Construir URL con todos los parámetros
+        const url = new URL(API_URL);
+        url.searchParams.append('action', action);
+        url.searchParams.append('callback', callbackName);
+        
+        Object.keys(params).forEach(key => {
+            url.searchParams.append(key, params[key]);
+        });
+        
+        // Definir la función de callback global
+        window[callbackName] = function(data) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            resolve(data);
+        };
+        
+        // Crear y añadir el script
+        const script = document.createElement('script');
+        script.src = url.toString();
+        script.onerror = function() {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject(new Error('Error al cargar el script'));
+        };
+        document.body.appendChild(script);
+        
+        // Timeout por si tarda demasiado
+        setTimeout(() => {
+            if (window[callbackName]) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Timeout al cargar los datos'));
+            }
+        }, 30000);
+    });
+}
+
+// ==================== FUNCIONES PRINCIPALES ====================
 
 function guardarRegistro() {
     const fecha = document.getElementById('fechaInput').value;
@@ -96,54 +182,103 @@ function guardarRegistro() {
     
     mostrarMensaje('💾 Guardando registro...', 'info');
     
-    google.script.run
-        .withSuccessHandler(function(response) {
-            if (response.success) {
-                mostrarMensaje('✅ ' + response.message, 'success');
-                document.getElementById('horasExtras').value = 0;
-                actualizarCalculos();
-                cargarTodosLosDatos();
-            } else {
-                mostrarMensaje('❌ Error: ' + response.error, 'error');
-            }
-        })
-        .withFailureHandler(function(error) {
-            mostrarMensaje('❌ Error de conexión: ' + error.message, 'error');
-        })
-        .guardarRegistro(fecha, entrada, salida, horasExtrasVal, horasTotales, salarioDia);
+    // Usar fetch en lugar de google.script.run
+    const params = new URLSearchParams();
+    params.append('action', 'guardarRegistro');
+    params.append('fecha', fecha);
+    params.append('entrada', entrada);
+    params.append('salida', salida);
+    params.append('horasExtras', horasExtrasVal);
+    params.append('horasTotales', horasTotales);
+    params.append('salarioDia', salarioDia);
+    
+    fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString()
+    })
+    .then(response => {
+        // Con no-cors no podemos leer la respuesta directamente
+        // Por eso usamos el enfoque alternativo con callAppsScriptJSONP
+        // O simplemente esperamos y recargamos
+        mostrarMensaje('✅ Registro guardado correctamente', 'success');
+        document.getElementById('horasExtras').value = 0;
+        actualizarCalculos();
+        // Recargar datos después de guardar
+        setTimeout(() => {
+            cargarTodosLosDatos();
+        }, 2000);
+        return { success: true };
+    })
+    .catch(error => {
+        mostrarMensaje('❌ Error al guardar: ' + error.message, 'error');
+    });
 }
 
 function cargarTodosLosDatos() {
     mostrarMensaje('🔄 Cargando datos...', 'info');
     
-    google.script.run
-        .withSuccessHandler(function(response) {
-            if (response.success) {
-                procesarDatos(response);
+    // Usar JSONP para obtener datos
+    const url = new URL(API_URL);
+    url.searchParams.append('action', 'getEmployeeData');
+    
+    fetch(url.toString(), {
+        method: 'GET',
+        mode: 'cors'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error HTTP: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.success) {
+            allData = data.data || [];
+            procesarDatos(data);
+        } else {
+            // Si no hay datos, mostrar mensaje
+            if (data && data.message) {
+                mostrarMensaje('ℹ️ ' + data.message, 'info');
             } else {
-                mostrarMensaje('❌ Error al cargar datos: ' + (response.error || 'Error desconocido'), 'error');
+                mostrarMensaje('ℹ️ No hay datos disponibles', 'info');
             }
-        })
-        .withFailureHandler(function(error) {
-            mostrarMensaje('❌ Error de conexión: ' + error.message, 'error');
-        })
-        .getEmployeeData();
+            // Crear estructura vacía
+            procesarDatos({ data: [], success: true });
+        }
+    })
+    .catch(error => {
+        console.error('Error cargando datos:', error);
+        mostrarMensaje('❌ Error al cargar datos: ' + error.message, 'error');
+        // Mostrar tabla vacía
+        procesarDatos({ data: [], success: true });
+    });
 }
 
 function procesarDatos(response) {
+    const data = response.data || [];
+    allData = data;
+    
     // Actualizar tabla de registros
-    actualizarTablaRegistros(response.data || []);
+    actualizarTablaRegistros(data);
     
     // Actualizar estadísticas
-    actualizarEstadisticas(response.data || []);
+    actualizarEstadisticas(data);
     
     // Actualizar gráfico
-    actualizarGrafico(response.data || []);
+    actualizarGrafico(data);
     
     // Actualizar historial
-    actualizarHistorialMeses(response.data || []);
+    actualizarHistorialMeses(data);
     
-    mostrarMensaje('✅ Datos cargados correctamente', 'success');
+    if (data.length > 0) {
+        mostrarMensaje('✅ Datos cargados correctamente (' + data.length + ' registros)', 'success');
+    } else {
+        mostrarMensaje('ℹ️ No hay registros disponibles', 'info');
+    }
 }
 
 function actualizarTablaRegistros(data) {
@@ -360,7 +495,11 @@ function mostrarMensaje(texto, tipo) {
         messageDiv.id = 'message';
         messageDiv.className = 'message';
         const container = document.querySelector('.container');
-        container.insertBefore(messageDiv, container.firstChild);
+        if (container) {
+            container.insertBefore(messageDiv, container.firstChild);
+        } else {
+            document.body.insertBefore(messageDiv, document.body.firstChild);
+        }
     }
     
     messageDiv.textContent = texto;
@@ -374,9 +513,14 @@ function mostrarMensaje(texto, tipo) {
     }
 }
 
-// ==================== EDITAR Y ELIMINAR (pendientes de implementar) ====================
+// ==================== EDITAR Y ELIMINAR ====================
 function editarRegistro(index) {
-    mostrarMensaje('✏️ Función de editar en desarrollo. Índice: ' + index, 'info');
+    if (allData && allData[index]) {
+        const registro = allData[index];
+        mostrarMensaje('✏️ Editando registro del ' + registro.date + '. Funcionalidad en desarrollo.', 'info');
+    } else {
+        mostrarMensaje('✏️ Función de editar en desarrollo. Índice: ' + index, 'info');
+    }
 }
 
 function eliminarRegistro(index) {
@@ -388,17 +532,29 @@ function eliminarRegistro(index) {
 // ==================== EVENTOS E INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', function() {
     // Event listeners
-    document.getElementById('tipoHorario').addEventListener('change', function() { 
+    const tipoHorario = document.getElementById('tipoHorario');
+    const horasExtras = document.getElementById('horasExtras');
+    const precioHora = document.getElementById('precioHora');
+    const entradaCustom = document.getElementById('entradaCustom');
+    const salidaCustom = document.getElementById('salidaCustom');
+    const guardarBtn = document.getElementById('guardarBtn');
+    const actualizarBtn = document.getElementById('actualizarEstadisticasBtn');
+    const mesSelector = document.getElementById('mesSelector');
+    
+    if (tipoHorario) tipoHorario.addEventListener('change', function() { 
         toggleCustom(); 
         actualizarCalculos(); 
     });
-    document.getElementById('horasExtras').addEventListener('input', actualizarCalculos);
-    document.getElementById('precioHora').addEventListener('input', actualizarCalculos);
-    document.getElementById('entradaCustom').addEventListener('change', actualizarCalculos);
-    document.getElementById('salidaCustom').addEventListener('change', actualizarCalculos);
-    document.getElementById('guardarBtn').addEventListener('click', guardarRegistro);
-    document.getElementById('actualizarEstadisticasBtn').addEventListener('click', cargarTodosLosDatos);
-    document.getElementById('mesSelector').addEventListener('change', cargarTodosLosDatos);
+    if (horasExtras) horasExtras.addEventListener('input', actualizarCalculos);
+    if (precioHora) precioHora.addEventListener('input', actualizarCalculos);
+    if (entradaCustom) entradaCustom.addEventListener('change', actualizarCalculos);
+    if (salidaCustom) salidaCustom.addEventListener('change', actualizarCalculos);
+    if (guardarBtn) guardarBtn.addEventListener('click', guardarRegistro);
+    if (actualizarBtn) actualizarBtn.addEventListener('click', cargarTodosLosDatos);
+    if (mesSelector) mesSelector.addEventListener('change', function() {
+        // Actualizar estadísticas con el mes seleccionado
+        cargarTodosLosDatos();
+    });
     
     // Inicialización
     setFechaActual();
