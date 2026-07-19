@@ -1,6 +1,6 @@
 // ==================== CONFIGURACIÓN ====================
 const PRECIO_FIJO_MENSUAL = 9.60;
-const API_URL = 'https://script.google.com/macros/s/AKfycbxUIJyjH-QSVmMA56m9iNvrnVQIv8NnuEttrVu1TbrNVxPbuhZTaYj3FSzkRx6MGO0/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxEXwEihs912O6u6fwjSSs1u1ELnUhT9-_6K0k1Q3VHy8IzYoyYGYQLx1NYgVO7aKLO/exec';
 
 // Variables globales
 let chartInstance = null;
